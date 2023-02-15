@@ -17,7 +17,7 @@ import kotlin.test.assertFailsWith
 /**
  * Test cases for [CreateDidFlow]
  */
-class CreateDidFlowTests : AbstractFlowTestUtils() {
+public class CreateDidFlowTests : AbstractFlowTestUtils() {
 
 	@Test
 	fun `create new did successfully`() {

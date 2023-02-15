@@ -1,6 +1,7 @@
 plugins {
     id 'org.jetbrains.kotlin.jvm'
     id 'io.spring.dependency-management' version '1.0.7.RELEASE'
+    id 'net.corda.plugins.cordapp'
     id 'net.corda.plugins.quasar-utils'
     id 'net.corda.plugins.cordformation'
     id 'org.jetbrains.dokka'
@@ -9,23 +10,27 @@ plugins {
 ext {
     spring_boot_version = '1.5.7.RELEASE'
     spring_version = '4.3.11.RELEASE'
-    log4j_version = '2.10.0'
+    log4j_version = '2.17.0' // '2.10.0'
 }
 
+/*
 repositories {
+    mavenCentral()
     mavenLocal()
     jcenter()
-    mavenCentral()
     maven { url 'https://dl.bintray.com/kotlin/exposed' }
     maven { url 'https://jitpack.io' }
     maven { url 'https://ci-artifactory.corda.r3cev.com/artifactory/corda-releases' }
 }
+*/
 
 dependencyManagement {
     dependencies {
         dependency "org.apache.logging.log4j:log4j-slf4j-impl:$log4j_version"
     }
 }
+
+cordapp.signing.enabled false
 
 dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
@@ -73,7 +78,7 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
 task runPartyAServer(type: JavaExec, dependsOn: jar) {
     classpath = sourceSets.main.runtimeClasspath
     main = 'com.persistent.did.api.ServerKt'
-    args '--server.port=50005', '--config.rpc.host=localhost', '--config.rpc.port=10005', '--config.rpc.username=user1', '--config.rpc.password=test'
+    args '--server.port=50005', '--config.rpc.host=localhost', '--config.rpc.port=10006', '--config.rpc.username=user1', '--config.rpc.password=test'
 }
 task dokkaJavadoc(type: org.jetbrains.dokka.gradle.DokkaTask) {
     outputFormat = 'javadoc'

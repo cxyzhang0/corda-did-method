@@ -4,12 +4,12 @@ version "1.0-SNAPSHOT"
 buildscript {
     ext {
         corda_release_group = "net.corda"
-        corda_release_version = "4.0"
-        corda_gradle_plugins_version = "4.0.38"
+        corda_release_version = "4.9" //"4.0"
+        corda_gradle_plugins_version = "5.0.12" //"4.0.38"
         kotlin_version = "1.2.71"
         junit_version = "4.12"
         quasar_version = "0.7.10"
-        corda_platform_version = "4"
+        corda_platform_version = "10"
         dokka_version = "0.9.18"
 
         hamkrest_version = "1.7.0.0"
@@ -18,12 +18,13 @@ buildscript {
 
 
     repositories {
+        mavenLocal()
         mavenCentral()
+        maven { url 'https://software.r3.com/artifactory/corda-releases' }
         jcenter()
         maven {
             url "https://ci-artifactory.corda.r3cev.com/artifactory/corda"
         }
-        mavenLocal()
     }
 
     dependencies {
@@ -35,17 +36,105 @@ buildscript {
     }
 }
 
-
-
 allprojects {
     repositories {
-        jcenter()
-        mavenCentral()
         mavenLocal()
+        mavenCentral()
+
+        maven { url 'https://software.r3.com/artifactory/corda' }
+        maven { url 'https://software.r3.com/artifactory/corda-releases' }
         maven { url "https://ci-artifactory.corda.r3cev.com/artifactory/corda-dev" }
         maven { url "https://ci-artifactory.corda.r3cev.com/artifactory/corda" }
 
+        maven { url 'https://repo.gradle.org/gradle/libs-releases' }
+        maven { url 'https://repo.gradle.org/gradle/libs-releases-local' } // need this for gradle-tooling-api:5.6.4
+
         // can be removed post-release - used to get nightly snapshot build
         maven { url 'https://jitpack.io' }
+        jcenter()
     }
+}
+
+apply plugin: 'net.corda.plugins.cordapp'
+apply plugin: 'net.corda.plugins.cordformation'
+apply plugin: 'net.corda.plugins.quasar-utils'
+
+dependencies {
+    cordapp project(":did-envelope")
+    cordapp project(":did-contracts")
+    cordapp project(":did-flows")
+    cordapp project(":did-witness-flows")
+
+
+}
+task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
+    nodeDefaults {
+        projectCordapp {
+            deploy = false
+        }
+        cordapp project(':did-envelope')
+        cordapp project(':did-contracts')
+        cordapp project(':did-flows')
+        cordapp project(':did-witness-flows')
+        runSchemaMigration = true
+    }
+    node {
+        name "O=Notary,L=Dallas,C=US"
+        notary = [validating : false]
+        p2pPort 10002
+        rpcSettings {
+            address("localhost:10003")
+            adminAddress("localhost:10043")
+        }
+        cordapps.clear()
+    }
+    node {
+        name "O=PartyA,L=Dallas,C=US"
+        p2pPort 10005
+        rpcSettings {
+            address("localhost:10006")
+            adminAddress("localhost:10046")
+        }
+        rpcUsers = [[ user: "user1", "password": "test", "permissions": ["ALL"]]]
+        extraConfig = ['h2Settings.address' : 'localhost:20041']
+    }
+    node {
+        name "O=PartyB,L=Dallas,C=US"
+        p2pPort 10008
+        rpcSettings {
+            address("localhost:10009")
+            adminAddress("localhost:10049")
+        }
+        rpcUsers = [[ user: "user1", "password": "test", "permissions": ["ALL"]]]
+        extraConfig = ['h2Settings.address' : 'localhost:20042']
+    }
+    node {
+        name "O=PartyC,L=Dallas,C=US"
+        p2pPort 10011
+        rpcSettings {
+            address("localhost:10012")
+            adminAddress("localhost:10052")
+        }
+        rpcUsers = [[ user: "user1", "password": "test", "permissions": ["ALL"]]]
+        extraConfig = ['h2Settings.address' : 'localhost:20043']
+    }
+}
+
+task copyCordappConfA(type: Copy) {
+    into "$buildDir/nodes/PartyA/cordapps/conf/"
+    from "$projectDir/conf/deployNodes/"
+}
+task copyCordappConfB(type: Copy) {
+    into "$buildDir/nodes/PartyB/cordapps/conf/"
+    from "$projectDir/conf/deployNodes/"
+}
+task copyCordappConfC(type: Copy) {
+    into "$buildDir/nodes/PartyC/cordapps/conf/"
+    from "$projectDir/conf/deployNodes/"
+}
+task copyCordappConf {
+    dependsOn 'deployNodes'
+    dependsOn 'copyCordappConfA'
+    dependsOn 'copyCordappConfB'
+    dependsOn 'copyCordappConfC'
 }
